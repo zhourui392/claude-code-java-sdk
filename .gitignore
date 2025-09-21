@@ -1,0 +1,31 @@
+target
+.idea
+.mvn
+logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Build outputs
+build/
+out/
+dependency-reduced-pom.xml
+
+# Logs
+*.log
+hs_err_pid*
+replay_pid*
+
+# Test reports
+surefire-reports/
+failsafe-reports/
+target
+**/target
