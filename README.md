@@ -4,7 +4,7 @@
 [![Maven](https://img.shields.io/badge/Maven-3.8+-blue.svg)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Claude Code的官方Java实现，包含完整的Java SDK和现代化的GUI应用程序，为Java开发者提供与Claude Code CLI的无缝集成体验。
+Claude Code的Java SDK实现，包含完整的Java SDK和现代化的GUI应用程序，为Java开发者提供与Claude Code CLI的无缝集成体验。
 
 ## 🚀 项目概述
 
