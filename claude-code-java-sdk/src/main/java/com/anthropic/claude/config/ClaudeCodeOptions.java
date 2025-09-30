@@ -4,7 +4,9 @@ import com.anthropic.claude.auth.AuthenticationProvider;
 import com.anthropic.claude.utils.ClaudePathResolver;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ClaudeCodeOptions {
@@ -17,6 +19,12 @@ public class ClaudeCodeOptions {
     private final boolean enableLogging;
     private final Map<String, String> environment;
     private final AuthenticationProvider authProvider;
+
+    // CLI模式配置
+    private final CliMode cliMode;
+    private final Duration ptyReadyTimeout;
+    private final String promptPattern;
+    private final List<String> additionalArgs;
 
     // 连接池配置
     private final int minPoolSize;
@@ -34,6 +42,10 @@ public class ClaudeCodeOptions {
         this.enableLogging = builder.enableLogging;
         this.environment = builder.environment;
         this.authProvider = builder.authProvider;
+        this.cliMode = builder.cliMode;
+        this.ptyReadyTimeout = builder.ptyReadyTimeout;
+        this.promptPattern = builder.promptPattern;
+        this.additionalArgs = builder.additionalArgs;
         this.minPoolSize = builder.minPoolSize;
         this.maxPoolSize = builder.maxPoolSize;
         this.connectionTimeout = builder.connectionTimeout;
@@ -92,6 +104,22 @@ public class ClaudeCodeOptions {
         return healthCheckInterval;
     }
 
+    public CliMode getCliMode() {
+        return cliMode;
+    }
+
+    public Duration getPtyReadyTimeout() {
+        return ptyReadyTimeout;
+    }
+
+    public String getPromptPattern() {
+        return promptPattern;
+    }
+
+    public List<String> getAdditionalArgs() {
+        return additionalArgs != null ? new ArrayList<>(additionalArgs) : new ArrayList<>();
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -106,6 +134,12 @@ public class ClaudeCodeOptions {
         private boolean enableLogging = true;
         private Map<String, String> environment = new HashMap<>();
         private AuthenticationProvider authProvider;
+
+        // CLI模式配置默认值
+        private CliMode cliMode = CliMode.getDefault();
+        private Duration ptyReadyTimeout = Duration.ofSeconds(10);
+        private String promptPattern;
+        private List<String> additionalArgs = new ArrayList<>();
 
         // 连接池配置默认值
         private int minPoolSize = 2;
@@ -185,6 +219,31 @@ public class ClaudeCodeOptions {
 
         public Builder healthCheckInterval(long healthCheckInterval) {
             this.healthCheckInterval = healthCheckInterval;
+            return this;
+        }
+
+        public Builder cliMode(CliMode cliMode) {
+            this.cliMode = cliMode;
+            return this;
+        }
+
+        public Builder ptyReadyTimeout(Duration ptyReadyTimeout) {
+            this.ptyReadyTimeout = ptyReadyTimeout;
+            return this;
+        }
+
+        public Builder promptPattern(String promptPattern) {
+            this.promptPattern = promptPattern;
+            return this;
+        }
+
+        public Builder additionalArgs(List<String> additionalArgs) {
+            this.additionalArgs = new ArrayList<>(additionalArgs);
+            return this;
+        }
+
+        public Builder addAdditionalArg(String arg) {
+            this.additionalArgs.add(arg);
             return this;
         }
 

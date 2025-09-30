@@ -239,6 +239,13 @@ public class EnhancedMainWindow extends JFrame implements MessageCallback, Sessi
         cliExecutor.setMessageCallback(this);
         cliExecutor.setUseResume(true); // 启用resume功能
 
+        // Windows 交互兼容性：Claude CLI 非 REPL，默认使用 SDK 模式
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            cliExecutor.setUsePtyMode(false);
+            appendMessage("系统", "Windows 环境：使用 SDK 非交互模式（支持 --resume）", systemStyle);
+        }
+
         // 显示欢迎消息
         appendMessage("系统", "欢迎使用Claude Code CLI GUI 增强版！", systemStyle);
         appendMessage("系统", "✨ 新功能：会话管理 - 创建、切换和管理多个对话会话", systemStyle);

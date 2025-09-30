@@ -11,6 +11,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.zeroturnaround.exec.ProcessResult;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,7 +49,7 @@ class ProcessManagerTest {
         List<String> command = Arrays.asList("cmd", "/c", "echo", "Hello World");
 
         assertDoesNotThrow(() -> {
-            var result = processManager.executeSync(command);
+            ProcessResult result = processManager.executeSync(command);
             assertNotNull(result);
             assertEquals(0, result.getExitValue());
             assertTrue(result.outputUTF8().contains("Hello World"));
@@ -59,7 +62,7 @@ class ProcessManagerTest {
         List<String> command = Arrays.asList("echo", "Hello World");
 
         assertDoesNotThrow(() -> {
-            var result = processManager.executeSync(command);
+            ProcessResult result = processManager.executeSync(command);
             assertNotNull(result);
             assertEquals(0, result.getExitValue());
             assertTrue(result.outputUTF8().contains("Hello World"));
@@ -73,7 +76,7 @@ class ProcessManagerTest {
         Duration shortTimeout = Duration.ofSeconds(1);
 
         assertDoesNotThrow(() -> {
-            var result = processManager.executeSync(command, shortTimeout);
+            ProcessResult result = processManager.executeSync(command, shortTimeout);
             assertNotNull(result);
         });
     }
@@ -85,7 +88,7 @@ class ProcessManagerTest {
         Duration shortTimeout = Duration.ofSeconds(1);
 
         assertDoesNotThrow(() -> {
-            var result = processManager.executeSync(command, shortTimeout);
+            ProcessResult result = processManager.executeSync(command, shortTimeout);
             assertNotNull(result);
         });
     }
@@ -152,9 +155,9 @@ class ProcessManagerTest {
         List<String> command = Arrays.asList("cmd", "/c", "echo", "Async Test");
 
         assertDoesNotThrow(() -> {
-            var future = processManager.executeAsync(command);
+            CompletableFuture<ProcessResult> future = processManager.executeAsync(command);
             assertNotNull(future);
-            var result = future.get();
+            ProcessResult result = future.get();
             assertNotNull(result);
         });
     }
@@ -165,9 +168,9 @@ class ProcessManagerTest {
         List<String> command = Arrays.asList("echo", "Async Test");
 
         assertDoesNotThrow(() -> {
-            var future = processManager.executeAsync(command);
+            CompletableFuture<ProcessResult> future = processManager.executeAsync(command);
             assertNotNull(future);
-            var result = future.get();
+            ProcessResult result = future.get();
             assertNotNull(result);
         });
     }
@@ -202,7 +205,7 @@ class ProcessManagerTest {
     void testExecuteAsyncWithInvalidCommand() {
         List<String> command = Arrays.asList("non-existent-command");
 
-        var future = processManager.executeAsync(command);
+        CompletableFuture<ProcessResult> future = processManager.executeAsync(command);
         assertNotNull(future);
 
         assertThrows(Exception.class, () -> {

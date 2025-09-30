@@ -10,6 +10,7 @@ import org.zeroturnaround.exec.stream.LogOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -23,7 +24,7 @@ public class ProcessManager {
     private final Map<String, String> environment;
 
     public ProcessManager() {
-        this(Duration.ofMinutes(10), Map.of());
+        this(Duration.ofMinutes(10), new HashMap<>());
     }
 
     public ProcessManager(Duration defaultTimeout, Map<String, String> environment) {

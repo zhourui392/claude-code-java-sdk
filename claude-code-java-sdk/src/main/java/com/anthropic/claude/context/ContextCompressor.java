@@ -157,7 +157,7 @@ public class ContextCompressor {
         // 按时间倒序排序（最新的优先）
         List<Message> sortedMessages = messages.stream()
                 .sorted(Comparator.comparing(Message::getTimestamp).reversed())
-                .toList();
+                .collect(Collectors.toList());
 
         int currentSize = 0;
         for (Message message : sortedMessages) {

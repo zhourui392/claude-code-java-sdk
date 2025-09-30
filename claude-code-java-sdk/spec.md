@@ -3,27 +3,46 @@
 ## 1. 项目概述
 
 ### 1.1 项目背景
-- **目标**: 创建Claude Code的Java SDK，通过翻译官方Python SDK实现100%功能对等
-- **策略**: 直接翻译Anthropic官方Python SDK，复用CLI调用架构
-- **优势**: 避免重新实现，确保功能完整性和版本同步
+- **目标**: 创建Claude Code的Java SDK，通过1:1翻译官方Claude Code Python SDK实现100%功能对等
+- **策略**: 直接翻译Anthropic官方Claude Code Python SDK (`claude-code-sdk`)，保持API设计和功能完全一致
+- **优势**: 避免重新实现，确保功能完整性和版本同步，为Java生态提供原生Claude Code集成能力
 
 ### 1.2 核心价值
-- ✅ **100%功能对等**: 与官方Python/TypeScript SDK完全一致
+- ✅ **100%功能对等**: 与官方Claude Code Python SDK完全一致
 - ✅ **快速上线**: 1-2周开发周期 vs 6-8周重新实现
-- ✅ **自动更新**: 跟随官方CLI版本演进
+- ✅ **自动更新**: 跟随官方Claude Code SDK版本演进
 - ✅ **低维护成本**: 无需独立维护复杂算法
+- ✅ **Java生态集成**: 为Java开发者提供原生Claude Code编程能力
 
 ## 2. 技术架构
 
 ### 2.1 架构原则
 ```
-Python SDK架构 → 1:1翻译 → Java SDK架构
-     ↓                        ↓
-CLI调用层                  ProcessBuilder
-JSON解析层                 Jackson/Gson
-异步处理层                 CompletableFuture
-配置管理层                 Properties/环境变量
+Claude Code Python SDK     →     1:1翻译     →     Claude Code Java SDK
+(claude-code-sdk)                                   (claude-code-java-sdk)
+     ↓                                                      ↓
+query()异步迭代器                              CompletableFuture/Observable
+CLI进程管理                                    ProcessManager (ZT-Exec)
+JSON流式解析                                   Jackson流式解析
+配置管理                                       ConfigLoader
+Hook系统                                       HookService
+自定义工具(MCP)                                MCPServer + @Tool注解
 ```
+
+### 2.1.1 与Python SDK的对应关系
+本项目是 **Claude Code Python SDK** (`claude-code-sdk`) 的Java实现，而非Anthropic Messages API的SDK。
+
+**重要区别**:
+- **Claude Code SDK**: 基于Claude Code CLI的高级编程接口，提供上下文管理、工具调用、Hook系统等
+- **Anthropic API SDK**: 直接调用Anthropic REST API的底层客户端
+
+本项目实现的功能特性：
+- ✅ `query()` 异步查询功能（对应Python SDK的async iterator）
+- ✅ 自定义工具系统（MCP in-process server）
+- ✅ Hook生命周期管理（pre_query, post_query, query_error）
+- ✅ 上下文自动压缩和管理
+- ✅ 子代理管理（Subagent management）
+- ✅ 配置多源加载（环境变量、配置文件、代码配置）
 
 ### 2.2 核心架构设计
 
@@ -55,15 +74,34 @@ JSON解析层                 Jackson/Gson
 
 #### 2.2.2 核心模块对应关系
 
-| Python模块 | Java模块 | 说明 |
-|-----------|----------|------|
-| `claude_code_sdk.client` | `com.anthropic.claude.client` | 主客户端类 |
-| `claude_code_sdk.query` | `com.anthropic.claude.query` | 查询处理 |
-| `claude_code_sdk.hooks` | `com.anthropic.claude.hooks` | Hook机制 |
-| `claude_code_sdk.subagents` | `com.anthropic.claude.subagents` | 子代理管理 |
-| `claude_code_sdk.config` | `com.anthropic.claude.config` | 配置管理 |
-| `claude_code_sdk.messages` | `com.anthropic.claude.messages` | 消息模型 |
-| `claude_code_sdk.process` | `com.anthropic.claude.process` | 进程管理 |
+本项目与 **Claude Code Python SDK** 的模块对应关系：
+
+| Claude Code Python SDK | Claude Code Java SDK | 说明 |
+|----------------------|---------------------|------|
+| `query()` 函数 | `ClaudeCodeSDK.query()` | 异步查询入口 |
+| `AsyncIterator<Message>` | `Observable<Message>` / `Stream<Message>` | 流式响应处理 |
+| 自定义工具 (Python函数) | `@Tool` 注解 + `MCPServer` | MCP in-process server |
+| Hook系统 | `HookService` + `HookCallback` | 生命周期事件管理 |
+| 配置管理 | `ConfigLoader` + `ClaudeCodeOptions` | 多源配置加载 |
+| 消息模型 | `Message` + `MessageParser` | JSON消息解析 |
+| 子代理 | `SubagentManager` + `Subagent` | 长运行子进程管理 |
+| CLI进程管理 | `ProcessManager` (基于ZT-Exec) | 跨平台进程执行 |
+| 上下文管理 | `ContextManager` + `ContextCompressor` | 智能上下文压缩 |
+
+**Python SDK示例**:
+```python
+from claude_code_sdk import query
+
+async for message in query(prompt="What is 2 + 2?"):
+    print(message)
+```
+
+**对应的Java SDK实现**:
+```java
+ClaudeCodeSDK sdk = new ClaudeCodeSDK();
+sdk.queryStream("What is 2 + 2?")
+    .subscribe(message -> System.out.println(message));
+```
 
 ### 2.3 依赖技术选型
 

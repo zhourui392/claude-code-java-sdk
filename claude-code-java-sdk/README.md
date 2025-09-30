@@ -1,6 +1,32 @@
 # Claude Code Java SDK
 
-Claude Code的官方Java SDK实现，通过1:1翻译Python SDK确保100%功能对等。
+Claude Code官方Python SDK的Java实现，通过1:1翻译确保100%功能对等。
+
+**重要**: 本项目翻译自 **Claude Code Python SDK** (`claude-code-sdk`)，而非Anthropic Messages API SDK。
+
+## 🎯 项目定位
+
+### Claude Code SDK vs Anthropic API SDK
+
+| 特性 | Claude Code SDK (本项目) | Anthropic API SDK |
+|------|-------------------------|-------------------|
+| **定位** | Claude Code CLI的高级编程接口 | Anthropic REST API的直接客户端 |
+| **架构** | CLI进程包装器 + 高级功能 | HTTP客户端 |
+| **核心功能** | Query, Hooks, Subagents, 自定义工具, 上下文管理 | Messages API, Streaming, Tool Calling |
+| **前置要求** | 需要安装Claude Code CLI | 仅需API Key |
+| **Python包** | `claude-code-sdk` (PyPI) | `anthropic` (PyPI) |
+| **本项目实现** | ✅ **本项目** | ❌ 不在范围内 |
+
+### Python SDK 功能对应
+
+| Claude Code Python SDK | Claude Code Java SDK |
+|----------------------|---------------------|
+| `query()` async function | `ClaudeCodeSDK.query()` / `queryStream()` |
+| `AsyncIterator<Message>` | `Observable<Message>` / `Stream<Message>` |
+| Custom tools (Python functions) | `@Tool` annotation + `MCPServer` |
+| Hook system | `HookService` + `HookCallback` |
+| Configuration | `ConfigLoader` + `ClaudeCodeOptions` |
+| Subagents | `SubagentManager` + `Subagent` |
 
 ## 🚀 快速开始
 
@@ -8,7 +34,7 @@ Claude Code的官方Java SDK实现，通过1:1翻译Python SDK确保100%功能�
 
 - Java 17+
 - Maven 3.8+ 或 Gradle 7.0+
-- Claude Code CLI（需要预先安装）
+- **Claude Code CLI**（必需，需要预先安装）
 
 ### 安装
 
@@ -28,24 +54,35 @@ Claude Code的官方Java SDK实现，通过1:1翻译Python SDK确保100%功能�
 implementation 'com.anthropic:claude-code-java-sdk:1.0.0'
 ```
 
-### 基础使用
+### Python SDK vs Java SDK 对比示例
 
+**Python SDK (claude-code-sdk)**:
+```python
+import anyio
+from claude_code_sdk import query
+
+async def main():
+    async for message in query(prompt="What is 2 + 2?"):
+        print(message)
+
+anyio.run(main)
+```
+
+**Java SDK (本项目)**:
 ```java
 import com.anthropic.claude.client.ClaudeCodeSDK;
-import com.anthropic.claude.config.ClaudeCodeOptions;
 import com.anthropic.claude.messages.Message;
 
 // 创建SDK实例
 ClaudeCodeSDK sdk = new ClaudeCodeSDK();
 
-// 执行查询
-Stream<Message> messages = sdk.query("请帮我写一个Java Hello World程序").join();
+// 流式查询（等同于Python的async iterator）
+sdk.queryStream("What is 2 + 2?")
+    .subscribe(message -> System.out.println(message));
 
-// 处理响应
-messages.forEach(message -> {
-    System.out.println("类型: " + message.getType());
-    System.out.println("内容: " + message.getContent());
-});
+// 或者使用CompletableFuture
+Stream<Message> messages = sdk.query("What is 2 + 2?").join();
+messages.forEach(message -> System.out.println(message));
 ```
 
 ## 📚 核心功能
@@ -339,9 +376,16 @@ CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
 
 ## 🆘 支持
 
-- 📖 [官方文档](https://docs.anthropic.com/claude-code)
+- 📖 [Claude Code官方文档](https://docs.anthropic.com/claude-code)
+- 📦 [Claude Code Python SDK (PyPI)](https://pypi.org/project/claude-code-sdk/)
 - 🐛 [问题反馈](https://github.com/anthropics/claude-code-java-sdk/issues)
 - 💬 [社区讨论](https://github.com/anthropics/claude-code-java-sdk/discussions)
+
+## 📚 相关资源
+
+- [Claude Code Python SDK 文档](https://docs.claude.com/en/docs/claude-code/sdk/sdk-overview) - 官方Python SDK文档
+- [Claude Code CLI 文档](https://docs.anthropic.com/claude-code) - Claude Code CLI用户指南
+- [本项目技术规格](spec.md) - Java SDK详细技术规格说明
 
 ## 🗺️ 路线图
 
@@ -350,3 +394,7 @@ CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
 - [ ] 更多示例和文档
 - [ ] 性能优化
 - [ ] 企业级功能
+
+---
+
+**本项目是Claude Code Python SDK的Java实现，为Java开发者提供与Python SDK相同的强大功能。**

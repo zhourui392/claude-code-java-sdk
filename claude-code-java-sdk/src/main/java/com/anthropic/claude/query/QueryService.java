@@ -10,6 +10,9 @@ import com.anthropic.claude.messages.Message;
 import com.anthropic.claude.messages.MessageParser;
 import com.anthropic.claude.process.ProcessManager;
 import com.anthropic.claude.process.StreamHandler;
+import com.anthropic.claude.pty.PtyManager;
+import com.anthropic.claude.strategy.CliExecutionStrategy;
+import com.anthropic.claude.strategy.CliExecutionStrategyFactory;
 import io.reactivex.rxjava3.core.Observable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +31,28 @@ public class QueryService {
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
 
     private final ProcessManager processManager;
+    private final PtyManager ptyManager;
     private final HookService hookService;
     private final ClaudeCodeOptions options;
     private final MessageParser messageParser;
     private final AtomicInteger queryCounter = new AtomicInteger(0);
 
-    public QueryService(ProcessManager processManager, HookService hookService, ClaudeCodeOptions options) {
+    private CliExecutionStrategy executionStrategy;
+
+    public QueryService(ProcessManager processManager, PtyManager ptyManager, HookService hookService, ClaudeCodeOptions options) {
         this.processManager = processManager;
+        this.ptyManager = ptyManager;
         this.hookService = hookService;
         this.options = options;
         this.messageParser = new MessageParser();
+
+        // 初始化执行策略
+        initializeExecutionStrategy();
+    }
+
+    // 向后兼容的构造函数
+    public QueryService(ProcessManager processManager, HookService hookService, ClaudeCodeOptions options) {
+        this(processManager, null, hookService, options);
     }
 
     public CompletableFuture<Stream<Message>> queryAsync(QueryRequest request) {
@@ -54,29 +69,67 @@ public class QueryService {
     public Observable<Message> queryStream(QueryRequest request) {
         return Observable.create(emitter -> {
             try {
-                StreamHandler streamHandler = new StreamHandler();
-                streamHandler.start();
+                HookContext preHookContext = createHookContext("pre_query", request, queryCounter.incrementAndGet());
+                HookResult preHookResult = hookService.executeHooks("pre_query", preHookContext);
 
-                streamHandler.getOutputStream().subscribe(
-                        line -> {
-                            try {
-                                if (messageParser.isValidJson(line)) {
-                                    Message message = messageParser.parseMessage(line);
-                                    emitter.onNext(message);
-                                }
-                            } catch (Exception e) {
-                                logger.warn("解析流式消息时出错: {}", line, e);
-                            }
-                        },
+                if (!preHookResult.shouldContinue()) {
+                    logger.warn("流式查询被Hook取消: {}", preHookResult.getMessage());
+                    emitter.onComplete();
+                    return;
+                }
+
+                // 使用策略执行流式查询
+                if (executionStrategy != null && executionStrategy.isAvailable()) {
+                    executionStrategy.executeStream(request).subscribe(
+                        emitter::onNext,
                         emitter::onError,
                         emitter::onComplete
-                );
+                    );
+                } else {
+                    logger.warn("执行策略不可用，使用传统流式处理");
+                    executeLegacyStreamingQuery(request, emitter);
+                }
 
-                executeStreamingQuery(request, streamHandler);
             } catch (Exception e) {
                 emitter.onError(e);
             }
         });
+    }
+
+    /**
+     * 初始化执行策略
+     */
+    private void initializeExecutionStrategy() {
+        try {
+            if (ptyManager != null) {
+                executionStrategy = CliExecutionStrategyFactory.createStrategy(
+                    options, processManager, ptyManager, messageParser);
+            } else {
+                executionStrategy = CliExecutionStrategyFactory.createDefaultStrategy(
+                    processManager, messageParser, options);
+            }
+
+            executionStrategy.start();
+            logger.info("执行策略初始化成功: {}", executionStrategy.getStrategyType());
+
+        } catch (Exception e) {
+            logger.error("执行策略初始化失败，将使用传统方式", e);
+            executionStrategy = null;
+        }
+    }
+
+    /**
+     * 关闭QueryService，释放策略资源
+     */
+    public void shutdown() {
+        if (executionStrategy != null) {
+            try {
+                executionStrategy.shutdown();
+                logger.info("执行策略已关闭");
+            } catch (Exception e) {
+                logger.error("关闭执行策略时发生错误", e);
+            }
+        }
     }
 
     private Stream<Message> executeQuery(QueryRequest request) throws ClaudeCodeException {
@@ -92,35 +145,30 @@ public class QueryService {
         }
 
         try {
-            if (!options.isCliEnabled()) {
-                logger.warn("外部 CLI 已禁用，返回空结果: {}", request.getPrompt());
-                return java.util.stream.Stream.empty();
+            // 使用策略执行查询
+            Stream<Message> messages;
+            if (executionStrategy != null && executionStrategy.isAvailable()) {
+                messages = executionStrategy.execute(request);
+            } else {
+                logger.warn("执行策略不可用，使用传统方式执行查询");
+                messages = executeLegacyQuery(request);
             }
-            List<String> command = buildCommand(request);
-            Duration timeout = request.getTimeout() != null ? request.getTimeout() : options.getTimeout();
-
-            ProcessResult result = processManager.executeSync(command, timeout);
-            String output = result.outputUTF8();
-
-            List<Message> messages = messageParser.parseMessages(output);
 
             HookContext postHookContext = createHookContext("post_query", request, queryId);
-            postHookContext.getData().put("messages", messages);
+            List<Message> messageList = messages.collect(java.util.stream.Collectors.toList());
+            postHookContext.getData().put("messages", messageList);
             hookService.executeHooks("post_query", postHookContext);
 
-            logger.debug("查询 {} 执行完成，返回 {} 条消息", queryId, messages.size());
-            return messages.stream();
+            logger.debug("查询 {} 执行完成", queryId);
+            return messageList.stream();
 
-        } catch (ProcessExecutionException e) {
-            logger.warn("查询 {} 外部 CLI 执行失败，已降级为空结果", queryId, e);
+        } catch (Exception e) {
+            logger.warn("查询 {} 执行异常", queryId, e);
 
             HookContext errorHookContext = createHookContext("query_error", request, queryId);
             errorHookContext.getData().put("error", e);
             hookService.executeHooks("query_error", errorHookContext);
 
-            return java.util.stream.Stream.empty();
-        } catch (Exception e) {
-            logger.warn("查询 {} 执行异常，已降级为空结果", queryId, e);
             return java.util.stream.Stream.empty();
         }
     }
@@ -224,6 +272,60 @@ public class QueryService {
         } catch (Exception e) {
             logger.error("检查服务健康状态时出错", e);
             return false;
+        }
+    }
+
+    /**
+     * 传统方式执行查询（向后兼容）
+     */
+    private Stream<Message> executeLegacyQuery(QueryRequest request) throws ClaudeCodeException {
+        if (!options.isCliEnabled()) {
+            logger.warn("外部 CLI 已禁用，返回空结果: {}", request.getPrompt());
+            return java.util.stream.Stream.empty();
+        }
+
+        try {
+            List<String> command = buildCommand(request);
+            Duration timeout = request.getTimeout() != null ? request.getTimeout() : options.getTimeout();
+
+            ProcessResult result = processManager.executeSync(command, timeout);
+            String output = result.outputUTF8();
+
+            List<Message> messages = messageParser.parseMessages(output);
+            return messages.stream();
+
+        } catch (ProcessExecutionException e) {
+            logger.warn("传统查询执行失败", e);
+            throw new ClaudeCodeException("查询执行失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 传统方式执行流式查询（向后兼容）
+     */
+    private void executeLegacyStreamingQuery(QueryRequest request, io.reactivex.rxjava3.core.ObservableEmitter<Message> emitter) {
+        try {
+            StreamHandler streamHandler = new StreamHandler();
+            streamHandler.start();
+
+            streamHandler.getOutputStream().subscribe(
+                line -> {
+                    try {
+                        if (messageParser.isValidJson(line)) {
+                            Message message = messageParser.parseMessage(line);
+                            emitter.onNext(message);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("解析流式消息时出错: {}", line, e);
+                    }
+                },
+                emitter::onError,
+                emitter::onComplete
+            );
+
+            executeStreamingQuery(request, streamHandler);
+        } catch (Exception e) {
+            emitter.onError(e);
         }
     }
 

@@ -3,6 +3,7 @@ package com.anthropic.claude.client;
 import com.anthropic.claude.auth.AuthenticationProvider;
 import com.anthropic.claude.auth.DefaultAuthenticationProvider;
 import com.anthropic.claude.config.ClaudeCodeOptions;
+import com.anthropic.claude.config.CliMode;
 import com.anthropic.claude.config.ConfigLoader;
 import com.anthropic.claude.hooks.HookCallback;
 import com.anthropic.claude.hooks.HookService;
@@ -11,6 +12,7 @@ import com.anthropic.claude.process.ProcessManager;
 import com.anthropic.claude.query.QueryBuilder;
 import com.anthropic.claude.query.QueryRequest;
 import com.anthropic.claude.query.QueryService;
+import com.anthropic.claude.pty.PtyManager;
 import com.anthropic.claude.subagents.SubagentManager;
 import io.reactivex.rxjava3.core.Observable;
 import org.slf4j.Logger;
@@ -50,7 +52,14 @@ public class ClaudeCodeSDK {
 
         this.processManager = new ProcessManager(options.getTimeout(), options.getEnvironment());
         this.hookService = new HookService();
-        this.queryService = new QueryService(processManager, hookService, options);
+        // 根据配置选择执行模式：默认批处理；PTY 模式注入 PtyManager
+        if (options.getCliMode() == CliMode.PTY_INTERACTIVE) {
+            logger.info("初始化 QueryService（PTY 交互模式）");
+            this.queryService = new QueryService(processManager, new PtyManager(), hookService, options);
+        } else {
+            logger.info("初始化 QueryService（批处理模式）");
+            this.queryService = new QueryService(processManager, hookService, options);
+        }
         this.subagentManager = new SubagentManager(processManager, options);
 
         logger.info("Claude Code SDK 初始化完成");
@@ -136,4 +145,3 @@ public class ClaudeCodeSDK {
         }
     }
 }
-

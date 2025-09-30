@@ -58,7 +58,9 @@ public class ConnectionPoolManager {
      */
     public CompletableFuture<PooledConnection> getConnection() {
         if (shutdown) {
-            return CompletableFuture.failedFuture(new IllegalStateException("连接池已关闭"));
+            CompletableFuture<PooledConnection> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(new IllegalStateException("连接池已关闭"));
+            return failedFuture;
         }
 
         return CompletableFuture.supplyAsync(() -> {

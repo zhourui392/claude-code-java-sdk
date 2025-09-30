@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class SubagentManager {
     private static final Logger logger = LoggerFactory.getLogger(SubagentManager.class);
@@ -63,7 +64,7 @@ public class SubagentManager {
     }
 
     public List<String> getActiveSubagentIds() {
-        return activeSubagents.keySet().stream().toList();
+        return activeSubagents.keySet().stream().collect(Collectors.toList());
     }
 
     public int getActiveSubagentCount() {

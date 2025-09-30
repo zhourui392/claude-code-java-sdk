@@ -1,5 +1,6 @@
 package com.claude.gui.executor;
 
+import com.anthropic.claude.config.CliMode;
 import com.claude.gui.callback.MessageCallback;
 import com.anthropic.claude.client.ClaudeCodeSDK;
 import com.anthropic.claude.config.ClaudeCodeOptions;
@@ -11,6 +12,7 @@ import com.anthropic.claude.pty.ClaudeResponse;
 import com.anthropic.claude.pty.StateChange;
 import com.anthropic.claude.pty.ClaudeState;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -175,10 +177,15 @@ public class SessionAwareClaudeExecutor {
 
         try {
             if (usePtyMode) {
-                // 使用Pty模式启动Claude CLI
-                startPtyMode();
+                // 优先尝试Pty模式，失败后回退到SDK模式
+                try {
+                    startPtyMode();
+                } catch (Exception ptyError) {
+                    logError("Pty模式启动失败，将回退到SDK模式: " + ptyError.getMessage());
+                    startSdkMode();
+                }
             } else {
-                // 回退到SDK模式
+                // 直接使用SDK模式
                 startSdkMode();
             }
 
@@ -228,6 +235,17 @@ public class SessionAwareClaudeExecutor {
             // Unix/Linux/Mac环境
             command = new String[]{claudeCmd};
             logInfo("Unix环境，使用直接命令: " + claudeCmd);
+        }
+        // 为非交互使用增加输出参数：json-stream（按次交互）
+        try {
+            String[] extended = new String[command.length + 3];
+            System.arraycopy(command, 0, extended, 0, command.length);
+            extended[command.length] = "--output-format";
+            extended[command.length + 1] = "json-stream";
+            extended[command.length + 2] = "--stream";
+            command = extended;
+        } catch (Exception ignore) {
+            // 兼容性追加失败时忽略，保持原命令
         }
 
         try {
@@ -290,6 +308,8 @@ public class SessionAwareClaudeExecutor {
         // 创建配置选项
         ClaudeCodeOptions options = ClaudeCodeOptions.builder()
             .authProvider(new DefaultAuthenticationProvider("local-cli-mode"))
+            .cliMode(CliMode.PTY_INTERACTIVE)  // 设置为PTY交互模式
+            .ptyReadyTimeout(Duration.ofSeconds(15))  // 可选：设置PTY就绪超时
             .cliEnabled(true)
             .enableLogging(false)
             .build();

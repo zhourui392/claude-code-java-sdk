@@ -4,12 +4,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Java SDK for Claude Code - a 1:1 translation from the official Python SDK that provides comprehensive functionality for interacting with Claude through the CLI. The project implements advanced features including custom tools, multi-cloud authentication, and context management.
+This is a Java SDK for Claude Code - a 1:1 translation from the official **Claude Code Python SDK** (`claude-code-sdk`) that provides comprehensive functionality for interacting with Claude through the CLI. The project implements advanced features including custom tools, multi-cloud authentication, and context management.
+
+**IMPORTANT**: This is **NOT** a translation of the Anthropic Messages API SDK. This is a Java implementation of the **Claude Code Python SDK** which provides high-level programming capabilities built on top of Claude Code CLI.
 
 **Project**: Claude Code Java SDK
 **Language**: Java 17+
 **Build Tool**: Maven
 **Package Structure**: `com.anthropic.claude.*`
+**Python SDK Reference**: `claude-code-sdk` (PyPI package)
+
+## Key Differences from Anthropic API SDK
+
+| Aspect | Claude Code SDK (This Project) | Anthropic API SDK |
+|--------|-------------------------------|-------------------|
+| **Purpose** | High-level programming interface for Claude Code CLI | Direct REST API client |
+| **Architecture** | CLI process wrapper with advanced features | HTTP client for Anthropic API |
+| **Features** | Query, Hooks, Subagents, Custom Tools, Context Management | Messages API, Streaming, Function Calling |
+| **Prerequisite** | Requires Claude Code CLI installed | Only requires API key |
+| **Python Package** | `claude-code-sdk` | `anthropic` |
+
+## Python SDK Feature Parity
+
+This project implements 100% feature parity with the official Claude Code Python SDK:
+
+✅ **Core Features**:
+- `query()` async function → `ClaudeCodeSDK.query()` / `queryStream()`
+- Custom tools (Python functions) → `@Tool` annotation + `MCPServer`
+- Hook system → `HookService` + `HookCallback`
+- Configuration management → `ConfigLoader` + `ClaudeCodeOptions`
+
+✅ **Advanced Features**:
+- Context management and compression
+- Subagent lifecycle management
+- Multi-source configuration (env vars, config files, code)
+- Authentication providers (Direct API, AWS Bedrock, Google Vertex AI)
+
+### Python SDK Example vs Java SDK
+
+**Python SDK**:
+```python
+import anyio
+from claude_code_sdk import query
+
+async def main():
+    async for message in query(prompt="What is 2 + 2?"):
+        print(message)
+
+anyio.run(main)
+```
+
+**Java SDK Equivalent**:
+```java
+ClaudeCodeSDK sdk = new ClaudeCodeSDK();
+sdk.queryStream("What is 2 + 2?")
+    .subscribe(message -> System.out.println(message));
+```
 
 ## Build and Development Commands
 

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -120,7 +121,7 @@ class MCPServerTest {
         mcpServer.registerTools(testTools);
 
         // 获取统计信息
-        var stats = mcpServer.getStatistics();
+        Map<String, Object> stats = mcpServer.getStatistics();
         assertEquals(3, stats.get("totalTools")); // TestTools有3个工具方法
         assertEquals(1, stats.get("registeredInstances"));
     }

@@ -42,7 +42,7 @@ public class PtyManager {
     // 配置
     private int terminalWidth = 120;
     private int terminalHeight = 30;
-    private Duration readyTimeout = Duration.ofSeconds(30);
+    private Duration readyTimeout = Duration.ofSeconds(45); // 增加默认超时时间
 
     // 状态管理
     private volatile boolean isRunning = false;
@@ -97,8 +97,8 @@ public class PtyManager {
             // 启动输出读取线程
             startOutputReader();
 
-            // 等待CLI就绪
-            waitForReady();
+            // 等待CLI就绪（可能超时抛出异常）
+            waitForReadyOrThrow();
 
             logger.info("Pty进程启动成功");
 
@@ -117,8 +117,9 @@ public class PtyManager {
      */
     public CompletableFuture<ClaudeResponse> sendCommand(String command) {
         if (!isRunning || ptyProcess == null || !ptyProcess.isAlive()) {
-            return CompletableFuture.failedFuture(
-                new IllegalStateException("Pty进程未运行"));
+            CompletableFuture<ClaudeResponse> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(new IllegalStateException("Pty进程未运行"));
+            return failedFuture;
         }
 
         return CompletableFuture.supplyAsync(() -> {
@@ -243,9 +244,9 @@ public class PtyManager {
                     if (bytesRead > 0) {
                         String chunk = new String(buffer, 0, bytesRead);
 
-                        // 按行处理输出
+                        // 按行处理输出（兼容 CRLF/CR）
                         lineBuffer.append(chunk);
-                        String[] lines = lineBuffer.toString().split("\n", -1);
+                        String[] lines = lineBuffer.toString().split("(\\r\\n|\\n|\\r)", -1);
 
                         // 处理完整的行
                         for (int i = 0; i < lines.length - 1; i++) {
@@ -329,6 +330,39 @@ public class PtyManager {
         if (isRunning) {
             logger.warn("等待CLI就绪超时，当前状态: {}", currentState);
         }
+    }
+    
+    /**
+     * 等待CLI就绪（超时抛出异常，供上层回退使用）
+     */
+    private void waitForReadyOrThrow() throws IOException {
+        Instant deadline = Instant.now().plus(readyTimeout);
+        logger.debug("开始等待CLI就绪，超时时间: {}秒", readyTimeout.getSeconds());
+
+        while (Instant.now().isBefore(deadline) && isRunning) {
+            logger.debug("当前状态: {}, 进程状态: alive={}", currentState, ptyProcess != null && ptyProcess.isAlive());
+
+            // 扩展就绪状态判断条件
+            if (currentState == ClaudeState.READY ||
+                currentState == ClaudeState.WAITING_INPUT ||
+                currentState == ClaudeState.PROCESSING ||
+                (ptyProcess != null && ptyProcess.isAlive() && currentState != ClaudeState.STARTING)) {
+                logger.info("CLI已就绪，最终状态: {}", currentState);
+                return;
+            }
+
+            try {
+                Thread.sleep(200); // 增加等待间隔，减少CPU占用
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("等待就绪时被中断", e);
+            }
+        }
+
+        // 添加更详细的错误信息
+        String processStatus = ptyProcess != null ?
+            (ptyProcess.isAlive() ? "进程运行中" : "进程已停止") : "进程未启动";
+        throw new IOException(String.format("等待CLI就绪超时，当前状态: %s, %s", currentState, processStatus));
     }
 
     // Setters for callbacks

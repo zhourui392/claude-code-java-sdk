@@ -86,11 +86,16 @@ public class AuthenticationProviderFactory {
     public static AuthenticationProvider createProvider(ProviderType providerType, Map<String, String> config) {
         logger.info("创建认证提供者: {}", providerType.getDescription());
 
-        return switch (providerType) {
-            case DEFAULT -> createDefaultProvider(config);
-            case BEDROCK -> createBedrockProvider(config);
-            case VERTEX_AI -> createVertexAIProvider(config);
-        };
+        switch (providerType) {
+            case DEFAULT:
+                return createDefaultProvider(config);
+            case BEDROCK:
+                return createBedrockProvider(config);
+            case VERTEX_AI:
+                return createVertexAIProvider(config);
+            default:
+                throw new IllegalArgumentException("Unsupported provider type: " + providerType);
+        }
     }
 
     /**
@@ -260,11 +265,16 @@ public class AuthenticationProviderFactory {
      * 检查指定提供者是否已配置
      */
     private static boolean isProviderConfigured(ProviderType type) {
-        return switch (type) {
-            case DEFAULT -> System.getenv("CLAUDE_API_KEY") != null;
-            case BEDROCK -> isBedrockConfigured();
-            case VERTEX_AI -> isVertexAIConfigured();
-        };
+        switch (type) {
+            case DEFAULT:
+                return System.getenv("CLAUDE_API_KEY") != null;
+            case BEDROCK:
+                return isBedrockConfigured();
+            case VERTEX_AI:
+                return isVertexAIConfigured();
+            default:
+                return false;
+        }
     }
 
     /**

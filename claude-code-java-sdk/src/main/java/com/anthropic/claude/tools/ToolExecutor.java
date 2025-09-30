@@ -99,21 +99,40 @@ public class ToolExecutor {
             }
         }, executorService);
 
-        // 设置超时
-        return future.orTimeout(toolDefinition.getTimeout(), TimeUnit.MILLISECONDS)
-                .exceptionally(throwable -> {
-                    if (throwable instanceof TimeoutException) {
-                        logger.error("工具执行超时: {}", toolDefinition.getName());
-                        return ToolExecutionResult.error("工具执行超时")
-                                .executionTime(toolDefinition.getTimeout())
-                                .build();
-                    } else {
-                        logger.error("工具执行异常: {}", toolDefinition.getName(), throwable);
-                        return ToolExecutionResult.error(throwable.getCause() != null ?
-                                throwable.getCause() : throwable)
-                                .build();
-                    }
-                });
+        // JDK 8 兼容的超时处理
+        CompletableFuture<ToolExecutionResult> timeoutFuture = new CompletableFuture<>();
+
+        // 创建超时任务
+        ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledFuture<?> timeoutTask = timeoutExecutor.schedule(() -> {
+            if (!future.isDone()) {
+                future.cancel(true);
+                timeoutFuture.complete(ToolExecutionResult.error("工具执行超时")
+                        .executionTime(toolDefinition.getTimeout())
+                        .build());
+            }
+        }, toolDefinition.getTimeout(), TimeUnit.MILLISECONDS);
+
+        // 原future完成时的处理
+        future.whenComplete((result, throwable) -> {
+            timeoutTask.cancel(false); // 取消超时任务
+            timeoutExecutor.shutdown();
+
+            if (throwable != null) {
+                if (!timeoutFuture.isDone()) {
+                    logger.error("工具执行异常: {}", toolDefinition.getName(), throwable);
+                    timeoutFuture.complete(ToolExecutionResult.error((Throwable)(throwable.getCause() != null ?
+                            throwable.getCause() : throwable))
+                            .build());
+                }
+            } else {
+                if (!timeoutFuture.isDone()) {
+                    timeoutFuture.complete(result);
+                }
+            }
+        });
+
+        return timeoutFuture;
     }
 
     /**

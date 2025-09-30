@@ -6,8 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Java-based multi-module Maven project that provides a comprehensive Java SDK and GUI for interacting with Claude Code CLI. The project consists of two main modules:
 
-1. **claude-code-java-sdk**: A comprehensive Java SDK that provides 1:1 functionality parity with the Python SDK
+1. **claude-code-java-sdk**: A comprehensive Java SDK that provides 1:1 functionality parity with the official **Claude Code Python SDK** (`claude-code-sdk`)
 2. **claude-code-gui**: A Java Swing-based GUI application for interactive Claude Code CLI sessions
+
+**IMPORTANT**: This project translates the **Claude Code Python SDK**, not the Anthropic Messages API SDK. The Claude Code SDK is a high-level programming interface built on top of Claude Code CLI, providing features like hooks, subagents, custom tools, and context management.
 
 **Build Tool**: Maven 3.8+
 **Java Version**: Java 17+
@@ -269,7 +271,7 @@ logging.enabled=true
 - **GUI Module**: v2.0.0 Enhanced (full session management features)
 
 **Key Achievements:**
-- 100% Python SDK functionality parity
+- 100% Claude Code Python SDK functionality parity
 - Advanced enterprise features (hooks, subagents, custom tools)
 - Modern multi-session GUI with --resume support
 - Windows environment optimization

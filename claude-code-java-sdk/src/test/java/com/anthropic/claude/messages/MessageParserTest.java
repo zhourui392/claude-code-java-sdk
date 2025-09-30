@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -86,17 +87,15 @@ class MessageParserTest {
 
     @Test
     void testParseStreamingMessages() {
-        String streamContent = """
-                data: {"id":"1","type":"TEXT","content":"message 1","metadata":{},"timestamp":"2024-01-01T00:00:00Z"}
-                data: {"id":"2","type":"TEXT","content":"message 2","metadata":{},"timestamp":"2024-01-01T00:00:00Z"}
-                // comment
-                # another comment
-
-                invalid line
-                """;
+        String streamContent = "data: {\"id\":\"1\",\"type\":\"TEXT\",\"content\":\"message 1\",\"metadata\":{},\"timestamp\":\"2024-01-01T00:00:00Z\"}\n" +
+                "data: {\"id\":\"2\",\"type\":\"TEXT\",\"content\":\"message 2\",\"metadata\":{},\"timestamp\":\"2024-01-01T00:00:00Z\"}\n" +
+                "// comment\n" +
+                "# another comment\n" +
+                "\n" +
+                "invalid line\n";
 
         Stream<Message> messages = parser.parseStreamingMessages(streamContent);
-        List<Message> messageList = messages.toList();
+        List<Message> messageList = messages.collect(Collectors.toList());
 
         assertEquals(2, messageList.size());
         assertEquals("1", messageList.get(0).getId());

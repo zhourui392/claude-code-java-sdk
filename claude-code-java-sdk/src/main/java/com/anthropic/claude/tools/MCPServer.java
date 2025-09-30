@@ -9,6 +9,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 进程内MCP服务器
@@ -147,7 +148,7 @@ public class MCPServer {
         return new ArrayList<>(tools.values())
                 .stream()
                 .sorted(Comparator.comparingInt(ToolDefinition::getPriority))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**

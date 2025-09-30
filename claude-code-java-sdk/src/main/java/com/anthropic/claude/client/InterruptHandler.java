@@ -117,9 +117,10 @@ public class InterruptHandler {
 
         logger.info("开始中断所有活跃会话，数量: {}", activeInterrupts.size());
 
+        @SuppressWarnings("unchecked")
         CompletableFuture<Void>[] futures = activeInterrupts.keySet().stream()
                 .map(sessionId -> CompletableFuture.runAsync(() -> performInterrupt(sessionId)))
-                .toArray(CompletableFuture[]::new);
+                .toArray(size -> new CompletableFuture[size]);
 
         try {
             CompletableFuture.allOf(futures)

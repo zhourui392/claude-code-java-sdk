@@ -2,6 +2,8 @@ package com.anthropic.claude.config;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class BaseUrlTest {
@@ -45,7 +47,7 @@ class BaseUrlTest {
         loader.setProperty("base.url", "https://my-api.com");
         loader.setProperty("api.key", "test-key");
 
-        var envVars = loader.getEnvironmentVariables();
+        Map<String, String> envVars = loader.getEnvironmentVariables();
         assertEquals("https://my-api.com", envVars.get("ANTHROPIC_BASE_URL"));
         assertEquals("test-key", envVars.get("ANTHROPIC_API_KEY"));
     }

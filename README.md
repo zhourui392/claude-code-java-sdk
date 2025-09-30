@@ -6,13 +6,16 @@
 
 Claude Code的Java SDK实现，包含完整的Java SDK和现代化的GUI应用程序，为Java开发者提供与Claude Code CLI的无缝集成体验。
 
+**重要说明**: 本项目是 **Claude Code Python SDK** (`claude-code-sdk`) 的1:1 Java翻译版本，而非Anthropic Messages API SDK的翻译。
+
 ## 🚀 项目概述
 
 本项目提供两个核心组件：
 
 ### 📦 Claude Code Java SDK
-- **完整功能对等**：与Python SDK 1:1功能对应，确保100%兼容性
-- **企业级特性**：支持自定义工具、多云认证、上下文管理
+- **完整功能对等**：与Claude Code Python SDK 1:1功能对应，确保100%兼容性
+- **Python SDK翻译**：直接翻译自官方`claude-code-sdk` Python包
+- **企业级特性**：支持自定义工具、多云认证、上下文管理、Hook系统
 - **高性能设计**：基于RxJava的响应式编程，支持流式处理
 - **跨平台支持**：Windows/macOS/Linux全平台兼容
 
@@ -21,6 +24,40 @@ Claude Code的Java SDK实现，包含完整的Java SDK和现代化的GUI应用�
 - **实时交互**：流式显示Claude响应，支持长时间对话
 - **会话管理**：支持创建、切换、管理多个独立对话会话
 - **Windows优化**：针对Windows 11环境深度优化
+
+## 📋 与Python SDK的关系
+
+### Claude Code SDK vs Anthropic API SDK
+
+| 特性 | Claude Code SDK (本项目) | Anthropic API SDK |
+|------|-------------------------|-------------------|
+| **定位** | Claude Code CLI的高级编程接口 | Anthropic REST API的直接客户端 |
+| **架构** | CLI进程包装器 + 高级功能 | HTTP客户端 |
+| **功能** | Query, Hooks, Subagents, 自定义工具, 上下文管理 | Messages API, Streaming, Tool Calling |
+| **前置要求** | 需要安装Claude Code CLI | 仅需API Key |
+| **Python包** | `claude-code-sdk` (PyPI) | `anthropic` (PyPI) |
+| **Java实现** | **本项目** | 不在本项目范围内 |
+
+### Python SDK → Java SDK 对应示例
+
+**Python SDK (claude-code-sdk)**:
+```python
+import anyio
+from claude_code_sdk import query
+
+async def main():
+    async for message in query(prompt="What is 2 + 2?"):
+        print(message)
+
+anyio.run(main)
+```
+
+**Java SDK (本项目)**:
+```java
+ClaudeCodeSDK sdk = new ClaudeCodeSDK();
+sdk.queryStream("What is 2 + 2?")
+    .subscribe(message -> System.out.println(message));
+```
 
 ## 📋 目录结构
 
@@ -330,11 +367,24 @@ mvn test -pl claude-code-java-sdk
 
 ### 主要成就
 
-✅ **功能完整性**: 100% Python SDK功能对等
+✅ **功能完整性**: 100% Claude Code Python SDK功能对等
 ✅ **企业特性**: 钩子、子代理、自定义工具等高级功能
 ✅ **现代GUI**: 多会话管理和--resume支持
 ✅ **Windows优化**: 针对Windows 11环境深度优化
 ✅ **健壮性**: 完善的异常处理和日志系统
+
+## 🔑 核心功能对应关系
+
+### Python SDK 功能映射
+
+| Claude Code Python SDK | Claude Code Java SDK | 说明 |
+|----------------------|---------------------|------|
+| `query()` 函数 | `ClaudeCodeSDK.query()` | 异步查询 |
+| `AsyncIterator<Message>` | `Observable<Message>` / `Stream<Message>` | 流式响应 |
+| 自定义工具 (Python函数) | `@Tool` 注解 + `MCPServer` | MCP工具系统 |
+| Hook系统 | `HookService` + `HookCallback` | 生命周期管理 |
+| 配置管理 | `ConfigLoader` + `ClaudeCodeOptions` | 多源配置 |
+| 子代理 | `SubagentManager` + `Subagent` | 长运行子进程 |
 
 ## 🤝 贡献指南
 

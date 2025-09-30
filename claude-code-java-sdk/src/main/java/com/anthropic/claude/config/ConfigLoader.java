@@ -104,7 +104,7 @@ public class ConfigLoader {
     }
 
     public ClaudeCodeOptions createOptions() {
-        return ClaudeCodeOptions.builder()
+        ClaudeCodeOptions.Builder builder = ClaudeCodeOptions.builder()
                 .apiKey(getApiKey())
                 .baseUrl(getBaseUrl())
                 .cliPath(getCliPath())
@@ -113,7 +113,22 @@ public class ConfigLoader {
                 .maxRetries(getMaxRetries())
                 .enableLogging(isLoggingEnabled())
                 .environment(getEnvironmentVariables())
-                .build();
+                .cliMode(getCliMode())
+                .ptyReadyTimeout(getPtyReadyTimeout())
+                .promptPattern(getPromptPattern());
+
+        // 添加额外参数
+        String additionalArgs = getProperty("additional.args", null);
+        if (additionalArgs != null && !additionalArgs.trim().isEmpty()) {
+            String[] args = additionalArgs.split(",");
+            for (String arg : args) {
+                if (!arg.trim().isEmpty()) {
+                    builder.addAdditionalArg(arg.trim());
+                }
+            }
+        }
+
+        return builder.build();
     }
 
     public String getApiKey() {
@@ -231,6 +246,40 @@ public class ConfigLoader {
     private boolean isWindowsSystem() {
         String os = System.getProperty("os.name", "").toLowerCase();
         return os.contains("win");
+    }
+
+    /**
+     * 获取CLI模式配置
+     */
+    public CliMode getCliMode() {
+        String modeStr = getProperty("cli.mode", CliMode.getDefault().name());
+        try {
+            return CliMode.valueOf(modeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("无效的CLI模式配置: {}，使用默认模式: {}", modeStr, CliMode.getDefault());
+            return CliMode.getDefault();
+        }
+    }
+
+    /**
+     * 获取PTY就绪超时时间
+     */
+    public Duration getPtyReadyTimeout() {
+        String timeoutStr = getProperty("pty.ready.timeout", "10000");
+        try {
+            long millis = Long.parseLong(timeoutStr);
+            return Duration.ofMillis(millis);
+        } catch (NumberFormatException e) {
+            logger.warn("无效的PTY超时配置: {}，使用默认值", timeoutStr);
+            return Duration.ofSeconds(10);
+        }
+    }
+
+    /**
+     * 获取提示符模式
+     */
+    public String getPromptPattern() {
+        return getProperty("prompt.pattern", null);
     }
 
     public Map<String, String> getAllProperties() {

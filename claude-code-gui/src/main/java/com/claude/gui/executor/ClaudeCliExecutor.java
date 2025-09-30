@@ -1,5 +1,6 @@
 package com.claude.gui.executor;
 
+import com.anthropic.claude.config.CliMode;
 import com.claude.gui.callback.MessageCallback;
 import com.anthropic.claude.client.ClaudeCodeSDK;
 import com.anthropic.claude.config.ClaudeCodeOptions;
@@ -7,6 +8,7 @@ import com.anthropic.claude.auth.DefaultAuthenticationProvider;
 import com.anthropic.claude.query.QueryRequest;
 import com.anthropic.claude.messages.Message;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -101,6 +103,8 @@ public class ClaudeCliExecutor {
             // 创建配置选项，提供认证提供者用于本地CLI模式
             ClaudeCodeOptions options = ClaudeCodeOptions.builder()
                 .authProvider(new DefaultAuthenticationProvider("local-cli-mode"))
+                .cliMode(CliMode.PTY_INTERACTIVE)  // 设置为PTY交互模式
+                .ptyReadyTimeout(Duration.ofSeconds(15))  // 可选：设置PTY就绪超时
                 .cliEnabled(true)
                 .enableLogging(false)
                 .build();

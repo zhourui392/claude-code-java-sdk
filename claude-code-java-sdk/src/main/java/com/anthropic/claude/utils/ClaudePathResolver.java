@@ -3,7 +3,9 @@ package com.anthropic.claude.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -159,7 +161,15 @@ public class ClaudePathResolver {
             int exitCode = process.waitFor();
 
             if (exitCode == 0) {
-                byte[] output = process.getInputStream().readAllBytes();
+                // JDK 8 兼容的读取方式
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                byte[] data = new byte[1024];
+                int bytesRead;
+                InputStream inputStream = process.getInputStream();
+                while ((bytesRead = inputStream.read(data, 0, data.length)) != -1) {
+                    buffer.write(data, 0, bytesRead);
+                }
+                byte[] output = buffer.toByteArray();
                 String result = new String(output).trim();
                 String[] lines = result.split("\n");
 

@@ -166,15 +166,15 @@ public class ClaudeCliConfig {
 
         if (os.contains("windows")) {
             if (claudeCommand.contains("npx")) {
-                return new String[]{"cmd", "/c", claudeCommand, "--print"};
+                return new String[]{"cmd", "/c", claudeCommand, "--output-format", "json-stream", "--stream", "--print"};
             } else if (claudeCommand.endsWith(".bat") || claudeCommand.endsWith(".cmd")) {
                 // 对于批处理文件和cmd文件，使用cmd /c执行
-                return new String[]{"cmd", "/c", "\"" + claudeCommand + "\"", "--print"};
+                return new String[]{"cmd", "/c", "\"" + claudeCommand + "\"", "--output-format", "json-stream", "--stream", "--print"};
             } else {
-                return new String[]{claudeCommand, "--print"};
+                return new String[]{claudeCommand, "--output-format", "json-stream", "--stream", "--print"};
             }
         } else {
-            return new String[]{claudeCommand, "--print"};
+            return new String[]{claudeCommand, "--output-format", "json-stream", "--stream", "--print"};
         }
     }
 

@@ -10,9 +10,9 @@ import java.util.regex.Pattern;
  */
 public class ClaudeOutputPatterns {
 
-    // 提示符模式 - 检测各种命令提示符
+    // 提示符模式 - 检测各种命令提示符（增强Windows兼容性）
     public static final Pattern PROMPT_PATTERN =
-        Pattern.compile("^(\\$\\s+|>\\s+|claude>\\s*|\\[.*\\]\\$\\s+|❯\\s+)");
+        Pattern.compile("^(\\$\\s+|>\\s+|claude>\\s*|\\[.*\\]\\$\\s+|❯\\s+|C:\\\\.*>|D:\\\\.*>|.*:\\\\.*>|.*@.*\\$|Welcome to Claude Code|claude-code)", Pattern.CASE_INSENSITIVE);
 
     // 错误模式 - 检测错误信息
     public static final Pattern ERROR_PATTERN =

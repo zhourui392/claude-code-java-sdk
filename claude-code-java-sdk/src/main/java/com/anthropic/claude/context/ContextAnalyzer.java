@@ -45,7 +45,7 @@ public class ContextAnalyzer {
         List<MessageWithScore> scoredMessages = messages.stream()
                 .map(msg -> new MessageWithScore(msg, calculateImportanceScore(msg)))
                 .sorted(Comparator.comparingDouble(MessageWithScore::getScore).reversed())
-                .toList();
+                .collect(Collectors.toList());
 
         List<Message> prioritizedMessages = scoredMessages.stream()
                 .map(MessageWithScore::getMessage)
@@ -224,13 +224,18 @@ public class ContextAnalyzer {
      * 获取消息类型分数
      */
     private double getTypeScore(MessageType type) {
-        return switch (type) {
-            case SYSTEM -> 0.8;
-            case ERROR -> 0.7;
-            case USER -> 0.5;
-            case ASSISTANT -> 0.4;
-            default -> 0.3;
-        };
+        switch (type) {
+            case SYSTEM:
+                return 0.8;
+            case ERROR:
+                return 0.7;
+            case USER:
+                return 0.5;
+            case ASSISTANT:
+                return 0.4;
+            default:
+                return 0.3;
+        }
     }
 
     /**

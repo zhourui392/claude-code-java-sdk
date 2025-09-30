@@ -33,18 +33,20 @@ public class OutputParser {
         List<StateChange> changes = new ArrayList<>();
         buffer.append(output);
 
-        String[] lines = buffer.toString().split("\n");
+        // 同时按 \r\n、\n、\r 分割，兼容 Windows 回车更新
+        String[] lines = buffer.toString().split("(\\r\\n|\\n|\\r)");
 
         // 保留最后一行（可能不完整）
         if (lines.length > 0) {
             String lastLine = lines[lines.length - 1];
             buffer.setLength(0);
-            if (!output.endsWith("\n")) {
+            if (!(output.endsWith("\n") || output.endsWith("\r"))) {
                 buffer.append(lastLine);
             }
 
             // 处理完整的行
-            for (int i = 0; i < lines.length - (output.endsWith("\n") ? 0 : 1); i++) {
+            boolean hasLineTerminator = output.endsWith("\n") || output.endsWith("\r");
+            for (int i = 0; i < lines.length - (hasLineTerminator ? 0 : 1); i++) {
                 String line = lines[i].trim();
                 if (!line.isEmpty()) {
                     changes.addAll(parseLine(line));
@@ -129,8 +131,21 @@ public class OutputParser {
                 // 普通文本内容
                 responseBuilder.appendContent(line);
                 if (currentState == ClaudeState.STARTING) {
+                    // 如果收到任何输出且进程运行中，考虑为处理中状态
                     currentState = ClaudeState.PROCESSING;
                     changes.add(new StateChange(previousState, currentState, line));
+                }
+
+                // 增强启动检测：如果包含常见的CLI启动信息
+                if (currentState == ClaudeState.STARTING &&
+                    (line.toLowerCase().contains("claude") ||
+                     line.toLowerCase().contains("ready") ||
+                     line.toLowerCase().contains("started") ||
+                     line.toLowerCase().contains("welcome") ||
+                     line.trim().length() > 0)) {
+                    currentState = ClaudeState.PROCESSING;
+                    changes.add(new StateChange(previousState, currentState, line));
+                    logger.debug("基于输出内容检测到CLI启动: {}", line);
                 }
             }
 
