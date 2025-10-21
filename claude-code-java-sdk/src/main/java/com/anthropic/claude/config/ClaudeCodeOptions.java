@@ -9,6 +9,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Claude Code SDK 配置选项（已弃用）
+ *
+ * <p><strong>⚠️ 已弃用：</strong>此类已在 v2.0.0 中弃用。请改用 {@link ClaudeAgentOptions}。</p>
+ *
+ * <h3>迁移示例</h3>
+ * <pre>{@code
+ * // v1.0.0 (已弃用)
+ * ClaudeCodeOptions options = ClaudeCodeOptions.builder()
+ *     .apiKey("sk-...")
+ *     .timeout(Duration.ofMinutes(10))
+ *     .build();
+ *
+ * // v2.0.0 (推荐)
+ * ClaudeAgentOptions options = ClaudeAgentOptions.builder()
+ *     .apiKey("sk-...")
+ *     .timeout(Duration.ofMinutes(10))
+ *     .build();
+ * }</pre>
+ *
+ * @deprecated 自 2.0.0 起弃用，请使用 {@link ClaudeAgentOptions}
+ */
+@Deprecated
 public class ClaudeCodeOptions {
     private final String apiKey;
     private final String baseUrl;
@@ -120,10 +143,23 @@ public class ClaudeCodeOptions {
         return additionalArgs != null ? new ArrayList<>(additionalArgs) : new ArrayList<>();
     }
 
+    /**
+     * 创建 Builder 实例
+     *
+     * @return Builder 实例
+     * @deprecated 使用 {@link ClaudeAgentOptions#builder()}
+     */
+    @Deprecated
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * ClaudeCodeOptions Builder（已弃用）
+     *
+     * @deprecated 使用 {@link ClaudeAgentOptions.Builder}
+     */
+    @Deprecated
     public static class Builder {
         private String apiKey;
         private String baseUrl = "https://api.anthropic.com";

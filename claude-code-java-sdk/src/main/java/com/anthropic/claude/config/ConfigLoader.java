@@ -131,6 +131,39 @@ public class ConfigLoader {
         return builder.build();
     }
 
+    /**
+     * 创建 ClaudeAgentOptions（v2.0.0+）
+     *
+     * @return ClaudeAgentOptions 实例
+     */
+    public ClaudeAgentOptions createAgentOptions() {
+        ClaudeAgentOptions.Builder builder = ClaudeAgentOptions.builder()
+                .apiKey(getApiKey())
+                .baseUrl(getBaseUrl())
+                .cliPath(getCliPath())
+                .cliEnabled(isCliEnabled())
+                .timeout(getTimeout())
+                .maxRetries(getMaxRetries())
+                .enableLogging(isLoggingEnabled())
+                .environment(getEnvironmentVariables())
+                .cliMode(getCliMode())
+                .ptyReadyTimeout(getPtyReadyTimeout())
+                .promptPattern(getPromptPattern());
+
+        // 添加额外参数
+        String additionalArgs = getProperty("additional.args", null);
+        if (additionalArgs != null && !additionalArgs.trim().isEmpty()) {
+            String[] args = additionalArgs.split(",");
+            for (String arg : args) {
+                if (!arg.trim().isEmpty()) {
+                    builder.addAdditionalArg(arg.trim());
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
     public String getApiKey() {
         return getProperty("api.key", null);
     }
