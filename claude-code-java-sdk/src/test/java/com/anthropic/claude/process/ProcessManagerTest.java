@@ -37,7 +37,8 @@ class ProcessManagerTest {
     @Test
     void testConstructorWithParameters() {
         Duration timeout = Duration.ofMinutes(5);
-        Map<String, String> env = Map.of("KEY", "value");
+        Map<String, String> env = new HashMap<>();
+        env.put("KEY", "value");
 
         ProcessManager manager = new ProcessManager(timeout, env);
         assertNotNull(manager);
