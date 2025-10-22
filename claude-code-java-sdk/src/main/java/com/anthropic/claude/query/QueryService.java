@@ -1,5 +1,6 @@
 package com.anthropic.claude.query;
 
+import com.anthropic.claude.config.ClaudeAgentOptions;
 import com.anthropic.claude.config.ClaudeCodeOptions;
 import com.anthropic.claude.exceptions.ClaudeCodeException;
 import com.anthropic.claude.exceptions.ProcessExecutionException;
@@ -27,31 +28,69 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+/**
+ * 查询服务
+ *
+ * <p>负责执行 Claude Code CLI 查询，支持同步、异步和流式查询。</p>
+ *
+ * @author Claude Code Java SDK
+ * @version 2.0.0
+ */
 public class QueryService {
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
 
     private final ProcessManager processManager;
     private final PtyManager ptyManager;
     private final HookService hookService;
-    private final ClaudeCodeOptions options;
+    private final Object options; // Can be ClaudeCodeOptions or ClaudeAgentOptions
     private final MessageParser messageParser;
     private final AtomicInteger queryCounter = new AtomicInteger(0);
 
     private CliExecutionStrategy executionStrategy;
 
+    /**
+     * 创建查询服务（v1.0.0 兼容，PTY 模式）
+     *
+     * @deprecated 使用 {@link #QueryService(ProcessManager, PtyManager, HookService, ClaudeAgentOptions)}
+     */
+    @Deprecated
     public QueryService(ProcessManager processManager, PtyManager ptyManager, HookService hookService, ClaudeCodeOptions options) {
         this.processManager = processManager;
         this.ptyManager = ptyManager;
         this.hookService = hookService;
         this.options = options;
         this.messageParser = new MessageParser();
-
-        // 初始化执行策略
         initializeExecutionStrategy();
+        logger.debug("QueryService 已初始化（v1.0.0 兼容模式，PTY）");
     }
 
-    // 向后兼容的构造函数
+    /**
+     * 创建查询服务（v1.0.0 兼容，批处理模式）
+     *
+     * @deprecated 使用 {@link #QueryService(ProcessManager, HookService, ClaudeAgentOptions)}
+     */
+    @Deprecated
     public QueryService(ProcessManager processManager, HookService hookService, ClaudeCodeOptions options) {
+        this(processManager, null, hookService, options);
+    }
+
+    /**
+     * 创建查询服务（v2.0.0，PTY 模式）
+     */
+    public QueryService(ProcessManager processManager, PtyManager ptyManager, HookService hookService, ClaudeAgentOptions options) {
+        this.processManager = processManager;
+        this.ptyManager = ptyManager;
+        this.hookService = hookService;
+        this.options = options;
+        this.messageParser = new MessageParser();
+        initializeExecutionStrategy();
+        logger.debug("QueryService 已初始化（PTY 模式）");
+    }
+
+    /**
+     * 创建查询服务（v2.0.0，批处理模式）
+     */
+    public QueryService(ProcessManager processManager, HookService hookService, ClaudeAgentOptions options) {
         this(processManager, null, hookService, options);
     }
 

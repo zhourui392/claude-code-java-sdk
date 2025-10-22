@@ -1,10 +1,12 @@
 package com.anthropic.claude.client;
 
+import com.anthropic.claude.config.ClaudeAgentOptions;
 import com.anthropic.claude.config.ClaudeCodeOptions;
 import com.anthropic.claude.exceptions.ClaudeCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,13 +25,31 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SessionManager {
     private static final Logger logger = LoggerFactory.getLogger(SessionManager.class);
 
-    private final ClaudeCodeOptions options;
+    private final Duration timeout;
     private final ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final AtomicLong sessionCounter = new AtomicLong(0);
 
+    /**
+     * 创建会话管理器（v1.0.0 兼容）
+     *
+     * @param options v1.0.0 配置
+     * @deprecated 使用 {@link #SessionManager(ClaudeAgentOptions)}
+     */
+    @Deprecated
     public SessionManager(ClaudeCodeOptions options) {
-        this.options = options;
+        this.timeout = options.getTimeout();
+        startSessionCleanupTask();
+        logger.info("会话管理器已启动（v1.0.0 兼容模式）");
+    }
+
+    /**
+     * 创建会话管理器（v2.0.0）
+     *
+     * @param options v2.0.0 配置
+     */
+    public SessionManager(ClaudeAgentOptions options) {
+        this.timeout = options.getTimeout();
         startSessionCleanupTask();
         logger.info("会话管理器已启动");
     }
@@ -137,7 +157,7 @@ public class SessionManager {
      */
     public int cleanupExpiredSessions() {
         long currentTime = System.currentTimeMillis();
-        long sessionTimeout = options.getTimeout().toMillis() * 2; // 会话超时时间为查询超时的2倍
+        long sessionTimeout = timeout.toMillis() * 2; // 会话超时时间为查询超时的2倍
 
         int cleanedCount = 0;
         for (String sessionId : sessions.keySet()) {
